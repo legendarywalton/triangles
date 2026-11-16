@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Isosceles and right triangles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout idea: drafting sheet. Animated figure on gridded paper at left, the argument as timed steps at right, reference table below. */
+  --paper:#EEF1F6;
+  --panel:#FFFFFF;
+  --ink:#16202E;
+  --muted:#5A6678;
+  --line:#D3DAE4;
+  --iso:#2456D6;      /* everything about congruent sides */
+  --right:#D4421F;    /* everything about the right angle and hypotenuse */
+  --c1:#7A3FC4;       /* paired side/angle A */
+  --c2:#0B8A6E;       /* paired side/angle B */
+  --display:"Bricolage Grotesque","Avenir Next","Segoe UI",sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#0F141C; --panel:#171E29; --ink:#E7ECF3; --muted:#97A3B4; --line:#2B3545;
+    --iso:#7FA6FF; --right:#FF8B6A; --c1:#C19BFF; --c2:#4FD1B0;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#0F141C; --panel:#171E29; --ink:#E7ECF3; --muted:#97A3B4; --line:#2B3545;
+  --iso:#7FA6FF; --right:#FF8B6A; --c1:#C19BFF; --c2:#4FD1B0;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 56px;display:flex;flex-direction:column;gap:22px}
+header{display:flex;flex-direction:column;gap:8px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4.2vw,42px);line-height:1.08;margin:0;text-wrap:balance;letter-spacing:-0.01em}
+h1 .i{color:var(--iso)} h1 .r{color:var(--right)}
+.lead{margin:0;max-width:66ch;color:var(--muted)}
+h2{font-family:var(--display);font-weight:600;font-size:22px;line-height:1.2;margin:0;text-wrap:balance}
+h3{font-family:var(--display);font-weight:600;font-size:18px;margin:0}
+
+nav.scenes{display:flex;flex-wrap:wrap;gap:8px}
+nav.scenes button{font:500 13px var(--body);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px 6px 8px;display:flex;align-items:center;gap:8px;cursor:pointer}
+nav.scenes button .n{font:600 12px var(--mono);width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--paper);color:var(--muted)}
+nav.scenes button[data-fam="iso"] .n{background:var(--iso);color:var(--panel)}
+nav.scenes button[data-fam="right"] .n{background:var(--right);color:var(--panel)}
+nav.scenes button[data-fam="both"] .n{background:linear-gradient(135deg,var(--iso) 50%,var(--right) 50%);color:var(--panel)}
+nav.scenes button[aria-current="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+button:focus-visible,input:focus-visible,svg:focus-visible{outline:2px solid var(--iso);outline-offset:2px}
+
+.main{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.main{grid-template-columns:minmax(0,1fr)}}
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.sheet{background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:28px 28px;background-position:-1px -1px}
+.sheet svg{display:block;width:100%;height:auto;background:color-mix(in srgb,var(--panel) 86%,transparent)}
+.sheet svg.drag{touch-action:none;cursor:grab}
+.transport{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--line);flex-wrap:wrap}
+.transport button{font:500 14px var(--body);color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer;min-width:74px}
+.transport button.primary{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.transport button:disabled{opacity:.4;cursor:default}
+.transport input[type=range]{flex:1 1 140px;min-width:120px;accent-color:var(--ink)}
+.transport .hint{flex:1 1 140px;color:var(--muted);font-size:14px}
+
+.panel{display:flex;flex-direction:column;gap:14px}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font:500 12px var(--mono);border:1px solid var(--line);border-radius:4px;padding:2px 7px;color:var(--muted);background:var(--panel)}
+.tag b{font-weight:600;color:var(--ink)}
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+ol.steps li{padding:2px 0 2px 14px;border-left:3px solid var(--line);color:var(--muted);max-width:60ch;transition:color .25s,border-color .25s}
+ol.steps li.on{color:var(--ink)}
+ol.steps li.now{border-left-color:var(--ink)}
+
+/* SVG paint classes (theme tokens only) */
+.k-ink{stroke:var(--ink)}.k-muted{stroke:var(--muted)}.k-line{stroke:var(--line)}.k-iso{stroke:var(--iso)}.k-right{stroke:var(--right)}.k-c1{stroke:var(--c1)}.k-c2{stroke:var(--c2)}.k-none{stroke:none}
+.g-ink{fill:var(--ink)}.g-muted{fill:var(--muted)}.g-iso{fill:var(--iso)}.g-right{fill:var(--right)}.g-c1{fill:var(--c1)}.g-c2{fill:var(--c2)}.g-panel{fill:var(--panel)}.g-paper{fill:var(--paper)}.g-none{fill:none}
+svg text{font-family:var(--body);paint-order:stroke;stroke:var(--panel);stroke-width:4px;stroke-linejoin:round}
+svg text.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+svg text.disp{font-family:var(--display)}
+
+.ref{display:flex;flex-direction:column;gap:12px}
+.tablebox{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:15px}
+th,td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid var(--line)}
+tr:last-child td,tr:last-child th{border-bottom:none}
+thead th{font-family:var(--display);font-weight:600;font-size:16px}
+thead th.i{color:var(--iso)} thead th.r{color:var(--right)}
+tbody th{font-weight:500;color:var(--muted);width:22%}
+.note{margin:0;color:var(--muted);max-width:70ch;font-size:15px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="i">Isosceles</span> and <span class="r">right</span> triangles</h1>
+    <p class="lead">Isosceles is a claim about sides. Right is a claim about angles. Nine animated scenes build the theorems each claim earns, then show where the two meet.</p>
+  </header>
+
+  <nav class="scenes" id="nav" aria-label="Scenes"></nav>
+
+  <div class="main">
+    <section class="stage" aria-label="Animated figure">
+      <div class="sheet"><svg id="svg" viewBox="0 0 720 440" role="img" aria-label="Triangle figure"></svg></div>
+      <div class="transport">
+        <button id="prev" type="button">Back</button>
+        <button id="play" type="button" class="primary">Pause</button>
+        <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Position in this scene">
+        <span id="hint" class="hint" hidden>Drag point C. Guides snap when you get close.</span>
+        <button id="next" type="button">Next</button>
+      </div>
+    </section>
+
+    <section class="panel" aria-live="polite">
+      <h2 id="title"></h2>
+      <div class="tags" id="tags"></div>
+      <ol class="steps" id="steps"></ol>
+    </section>
+  </div>
+
+  <section class="ref">
+    <h3>Side by side</h3>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th></th><th class="i">Isosceles</th><th class="r">Right</th></tr></thead>
+        <tbody>
+          <tr><th>Classified by</th><td>Sides</td><td>Angles</td></tr>
+          <tr><th>Requirement</th><td>At least two congruent sides</td><td>Exactly one 90° angle</td></tr>
+          <tr><th>Side names</th><td>Two legs and a base</td><td>Two legs and a hypotenuse</td></tr>
+          <tr><th>Incongruent side</th><td>The base. It can be longer or shorter than the legs.</td><td>The hypotenuse. It is always the longest side and never matches a leg. The legs themselves may or may not match.</td></tr>
+          <tr><th>Angle fact</th><td>Base angles are congruent</td><td>Acute angles add to 90°</td></tr>
+          <tr><th>Signature theorem</th><td>Base Angles Theorem and its converse</td><td>Pythagorean Theorem and its converse</td></tr>
+          <tr><th>Congruence shortcut</th><td>None of its own. SSS, SAS, ASA, AAS apply as usual.</td><td>Hypotenuse-Leg (HL), which works only because of the right angle</td></tr>
+          <tr><th>Symmetry</th><td>One mirror line through the vertex</td><td>None, unless the legs are congruent</td></tr>
+          <tr><th>Both at once</th><td colspan="2">The 45-45-90 triangle: congruent legs, hypotenuse = leg × √2</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Postulate or theorem? Most US textbooks accept SSS, SAS, and ASA as postulates and prove everything else here from them. Some books list HL as a postulate too. The logic in these scenes does not depend on which label your book uses.</p>
+  </section>
+</div>
+
+<script>
+/* ---------- math ---------- */
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+const seg=(t,a,b)=>ease(clamp((t-a)/(b-a)));
+const lerp=(a,b,k)=>a+(b-a)*k;
+const lp=(P,Q,k)=>[lerp(P[0],Q[0],k),lerp(P[1],Q[1],k)];
+const dist=(P,Q)=>Math.hypot(P[0]-Q[0],P[1]-Q[1]);
+const unit=(P,Q)=>{const d=dist(P,Q)||1;return[(Q[0]-P[0])/d,(Q[1]-P[1])/d]};
+const ang=(P,Q,R)=>{const a=Math.atan2(Q[1]-P[1],Q[0]-P[0]),b=Math.atan2(R[1]-P[1],R[0]-P[0]);let d=Math.abs(a-b);if(d>Math.PI)d=2*Math.PI-d;return d*180/Math.PI};
+const cen=(A,B,C)=>[(A[0]+B[0]+C[0])/3,(A[1]+B[1]+C[1])/3];
+const f1=n=>n.toFixed(1);
+const U=px=>f1(px/20);            // pixels to display units
+const n2=x=>(+x).toFixed(1);
+const pts=a=>a.map(p=>n2(p[0])+','+n2(p[1])).join(' ');
+const sh=(P,dx,dy=0)=>[P[0]+dx,P[1]+dy];
+
+/* ---------- svg builders ---------- */
+const L=(P,Q,c='ink',w=2.5,o=1,dash='')=>`<line x1="${n2(P[0])}" y1="${n2(P[1])}" x2="${n2(Q[0])}" y2="${n2(Q[1])}" class="k-${c}" stroke-width="${w}" opacity="${o}" stroke-linecap="round"${dash?` stroke-dasharray="${dash}"`:''}/>`;
+const PG=(a,fill='none',stroke='ink',w=2.5,fo=1,o=1)=>`<polygon points="${pts(a)}" class="k-${stroke} g-${fill}" fill-opacity="${fo}" stroke-width="${w}" opacity="${o}" stroke-linejoin="round"/>`;
+const T=(x,y,s,c='ink',size=14,anchor='middle',o=1,weight=500,cls='')=>o<=0.01?'':`<text x="${n2(x)}" y="${n2(y)}" class="g-${c} ${cls}" font-size="${size}" text-anchor="${anchor}" opacity="${o}" font-weight="${weight}">${s}</text>`;
+const DOT=(P,r=4,c='ink',o=1)=>`<circle cx="${n2(P[0])}" cy="${n2(P[1])}" r="${r}" class="g-${c}" opacity="${o}"/>`;
+function ticks(P,Q,n,c='ink',o=1){
+  if(o<=0.01)return'';const m=lp(P,Q,.5),u=unit(P,Q),nx=-u[1],ny=u[0];let s='';
+  for(let i=0;i<n;i++){const off=(i-(n-1)/2)*6,cx=m[0]+u[0]*off,cy=m[1]+u[1]*off;s+=L([cx-nx*7,cy-ny*7],[cx+nx*7,cy+ny*7],c,2.5,o)}
+  return s;
+}
+function arc(P,Q,R,r,c='ink',o=1,fill=false){
+  if(o<=0.01)return'';
+  const a1=Math.atan2(Q[1]-P[1],Q[0]-P[0]);let d=Math.atan2(R[1]-P[1],R[0]-P[0])-a1;
+  while(d>Math.PI)d-=2*Math.PI;while(d<=-Math.PI)d+=2*Math.PI;
+  const x1=P[0]+r*Math.cos(a1),y1=P[1]+r*Math.sin(a1),x2=P[0]+r*Math.cos(a1+d),y2=P[1]+r*Math.sin(a1+d),sw=d>0?1:0;
+  let s='';
+  if(fill)s+=`<path d="M${n2(P[0])} ${n2(P[1])} L${n2(x1)} ${n2(y1)} A${r} ${r} 0 0 ${sw} ${n2(x2)} ${n2(y2)} Z" class="g-${c} k-none" fill-opacity="${0.2*o}"/>`;
+  s+=`<path d="M${n2(x1)} ${n2(y1)} A${r} ${r} 0 0 ${sw} ${n2(x2)} ${n2(y2)}" class="k-${c} g-none" stroke-width="2" opacity="${o}"/>`;
+  return s;
+}
+function rmark(P,Q,R,sz=14,c='right',o=1){
+  if(o<=0.01)return'';const u=unit(P,Q),v=unit(P,R);
+  const a=[P[0]+u[0]*sz,P[1]+u[1]*sz],b=[a[0]+v[0]*sz,a[1]+v[1]*sz],d=[P[0]+v[0]*sz,P[1]+v[1]*sz];
+  return `<polyline points="${pts([a,b,d])}" class="k-${c} g-none" stroke-width="2" opacity="${o}"/>`;
+}
+const vlabel=(P,G,s,c='ink',o=1)=>{const u=unit(G,P);return T(P[0]+u[0]*18,P[1]+u[1]*18+5,s,c,15,'middle',o,600)};
+const slabel=(P,Q,G,s,c='ink',o=1,off=20,cls='mono')=>{const m=lp(P,Q,.5),u=unit(G,m);return T(m[0]+u[0]*off,m[1]+u[1]*off+5,s,c,13,'middle',o,500,cls)};
+const alabel=(P,Q,R,s,c='ink',o=1,r=40)=>{const u=unit(P,Q),v=unit(P,R),b=[u[0]+v[0],u[1]+v[1]],bl=Math.hypot(b[0],b[1])||1;return T(P[0]+b[0]/bl*r,P[1]+b[1]/bl*r+4,s,c,12,'middle',o,500,'mono')};
+function chip(x,y,label,value,c){
+  const w=(label.length+value.length+2)*7.6+20;
+  return `<rect x="${x}" y="${y}" width="${n2(w)}" height="26" rx="5" class="g-panel k-${c}" stroke-width="1.5"/>`+
+    `<text x="${x+10}" y="${y+17.5}" font-size="12.5" class="mono g-muted">${label}: <tspan class="g-${c}" font-weight="600">${value}</tspan></text>`;
+}
+
+/* ---------- classification ---------- */
+function classify(A,B,C){
+  const a=dist(B,C),b=dist(A,C),c=dist(A,B),AA=ang(A,B,C),BB=ang(B,A,C),CC=ang(C,A,B);
+  const eq=(x,y)=>Math.abs(x-y)<1.2;
+  const e={ab:eq(a,b),bc:eq(b,c),ac:eq(a,c)},n=(e.ab?1:0)+(e.bc?1:0)+(e.ac?1:0);
+  const sides=n>=2?'Equilateral':n===1?'Isosceles':'Scalene';
+  const mx=Math.max(AA,BB,CC);
+  const angles=Math.abs(mx-90)<0.6?'Right':mx>90?'Obtuse':'Acute';
+  const rightAt=angles==='Right'?(AA===mx?'A':BB===mx?'B':'C'):null;
+  return{a,b,c,AA,BB,CC,e,n,sides,angles,rightAt};
+}
+/* Fully annotated triangle: lengths, angles, auto tick marks, auto right-angle mark. */
+function fullTri(A,B,C){
+  const k=classify(A,B,C),G=cen(A,B,C);
+  const inA=k.n>=2||k.e.ab||k.e.ac, inB=k.n>=2||k.e.ab||k.e.bc, inC=k.n>=2||k.e.bc||k.e.ac; // side a,b,c in a congruent pair
+  const col=(inPair,opp)=>k.rightAt===opp?'right':inPair?'iso':'ink';
+  const wid=(inPair,opp)=>k.rightAt===opp||inPair?3.5:2.5;
+  let s=PG([A,B,C],'ink','none',0,0.04);
+  s+=L(B,C,col(inA,'A'),wid(inA,'A'))+L(A,C,col(inB,'B'),wid(inB,'B'))+L(A,B,col(inC,'C'),wid(inC,'C'));
+  if(inA)s+=ticks(B,C,1,'iso');if(inB)s+=ticks(A,C,1,'iso');if(inC)s+=ticks(A,B,1,'iso');
+  const angle=(P,Q,R,name,deg,eqAngle)=>k.rightAt===name?rmark(P,Q,R)+alabel(P,Q,R,'90°','right',1,34)
+    :arc(P,Q,R,24,eqAngle?'iso':'muted',1,eqAngle)+alabel(P,Q,R,f1(deg)+'°',eqAngle?'iso':'ink',1,44);
+  s+=angle(A,B,C,'A',k.AA,inA)+angle(B,A,C,'B',k.BB,inB)+angle(C,A,B,'C',k.CC,inC);
+  s+=slabel(B,C,G,U(k.a),col(inA,'A'))+slabel(A,C,G,U(k.b),col(inB,'B'))+slabel(A,B,G,U(k.c),col(inC,'C'));
+  s+=vlabel(A,G,'A')+vlabel(B,G,'B')+vlabel(C,G,'C');
+  s+=chip(18,16,'By sides',k.sides,k.sides==='Scalene'?'ink':'iso')+chip(18,50,'By angles',k.angles,k.angles==='Right'?'right':'ink');
+  return s;
+}
+
+/* ---------- scenes ---------- */
+const explore={C:[420,170]};
+const scenes=[
+{ name:'Two questions', fam:'both', title:'Two different questions', dur:13.5,
+  tags:[['Definition','classify by sides'],['Definition','classify by angles']],
+  steps:[
+    [0,'Every triangle answers two separate questions: how do its sides compare, and how big is its largest angle? Here no sides match and every angle is under 90°, so it is scalene and acute.'],
+    [1.5,'Slide the top vertex over the middle of the base and two sides match. The triangle is now isosceles. No angle has to be 90° for that.'],
+    [5.5,'Put a 90° angle at A and the triangle is right. Its three sides can still all differ.'],
+    [9.5,'Stretch the vertical leg until it matches the base and both labels apply at once. The categories overlap because they measure different things.']],
+  draw(t){
+    const K=[[300,190],[360,110],[230,170],[230,90]],A=[230,350],B=[490,350];
+    let C=K[0];
+    if(t>=1.5)C=lp(K[0],K[1],seg(t,1.5,3));
+    if(t>=5.5)C=lp(K[1],K[2],seg(t,5.5,7));
+    if(t>=9.5)C=lp(K[2],K[3],seg(t,9.5,11));
+    return fullTri(A,B,C);
+  }},
+{ name:'Base angles', fam:'iso', title:'Isosceles: the Base Angles Theorem', dur:13.5,
+  tags:[['Definition','legs, base'],['Postulate','SAS'],['Theorem','Base Angles']],
+  steps:[
+    [0,'An isosceles triangle has at least two congruent sides, called the legs. Tick marks flag them.'],
+    [2.5,'The third side is the base. It is the incongruent side, and it can be longer or shorter than the legs.'],
+    [5,'Bisect the vertex angle. The bisector meets the base at D and cuts the triangle in two.'],
+    [7.5,'The halves share CD, have CA = CB, and have equal angles at C. By the SAS postulate they are congruent. Fold one onto the other to check.'],
+    [10.5,'So the angles opposite the congruent sides match: ∠A ≅ ∠B. This is the Base Angles Theorem, also called the Isosceles Triangle Theorem.']],
+  draw(t){
+    const A=[220,360],B=[500,360],C=[360,90],D=[360,360],G=cen(A,B,C);
+    const o1=seg(t,0.2,1.2),ob=seg(t,2.5,3.3),bis=seg(t,5,6.5),p=seg(t,7.5,10),done=seg(t,10.5,11.3);
+    let s=PG([A,B,C],'ink','none',0,0.04);
+    if(t>=7.5){const kx=Math.cos(Math.PI*p);s+=PG([A,D,C].map(P=>[360+(P[0]-360)*kx,P[1]]),'iso','iso',1.5,0.18)}
+    s+=L(A,B,'ink',2.5)+L(A,C,'ink',2.5)+L(B,C,'ink',2.5);
+    s+=L(A,C,'iso',3.5,o1)+L(B,C,'iso',3.5,o1)+ticks(A,C,1,'iso',o1)+ticks(B,C,1,'iso',o1);
+    s+=slabel(A,C,G,'leg','iso',o1,26,'')+slabel(B,C,G,'leg','iso',o1,26,'');
+    s+=T(360,392,'base (the incongruent side)','ink',13,'middle',ob);
+    if(bis>0){const E=lp(C,D,bis);s+=L(C,E,'muted',2,1,'6 5');
+      s+=arc(C,A,D,34,'c1',seg(t,6,6.6))+arc(C,B,D,40,'c1',seg(t,6,6.6));
+      s+=DOT(D,4,'ink',seg(t,6.3,6.6))+T(372,378,'D','ink',15,'start',seg(t,6.3,6.6),600)}
+    const ac=done>0?'iso':'muted';
+    s+=arc(A,B,C,26,ac,1,done>0)+arc(B,A,C,26,ac,1,done>0);
+    s+=T(360,48,'∠A ≅ ∠B','iso',20,'middle',done,600,'disp');
+    s+=T(360,70,'vertex angle','muted',12,'middle',seg(t,0.2,1.2)*(1-done));
+    s+=vlabel(A,G,'A')+vlabel(B,G,'B')+T(C[0]+16,C[1]+2,'C','ink',15,'start',1,600);
+    return s;
+  }},
+{ name:'Converse', fam:'iso', title:'The converse and the line of symmetry', dur:10.5,
+  tags:[['Theorem','Converse of Base Angles'],['Corollary','bisector = median = altitude']],
+  steps:[
+    [0,'The converse runs the other way. Start with two congruent angles on a base and let the sides grow until they meet.'],
+    [3,'The sides opposite those angles come out congruent. Two equal angles force an isosceles triangle.'],
+    [3.8,'The segment from the vertex to the midpoint of the base does three jobs. It bisects the vertex angle, it is the median, and it is the altitude, meeting the base at 90°.'],
+    [6.8,'That segment splits every isosceles triangle into two congruent right triangles. Each leg of the isosceles triangle becomes a hypotenuse.']],
+  draw(t){
+    const A=[220,360],B=[500,360],C=[360,96.7],D=[360,360],G=cen(A,B,C);
+    const g=seg(t,0.3,3),tk=seg(t,3,3.5),m=seg(t,3.8,5),rm=seg(t,5,5.5),sp=seg(t,6.8,8.2);
+    let s='';
+    if(t<6.8){
+      s+=L(A,B,'ink',2.5)+L(A,lp(A,C,g),'iso',3.5)+L(B,lp(B,C,g),'iso',3.5);
+      s+=arc(A,B,C,28,'iso',1,true)+arc(B,A,C,28,'iso',1,true)+alabel(A,B,C,'62°','iso',1,48)+alabel(B,A,C,'62°','iso',1,48);
+      s+=ticks(A,C,1,'iso',tk)+ticks(B,C,1,'iso',tk);
+      if(m>0)s+=L(C,lp(C,D,m),'muted',2,1,'6 5');
+      s+=rmark(D,B,C,14,'right',rm)+ticks(A,D,2,'ink',rm)+ticks(D,B,2,'ink',rm)+DOT(D,4,'ink',rm);
+      s+=vlabel(A,G,'A')+vlabel(B,G,'B')+T(C[0]+16,C[1]+2,'C','ink',15,'start',g>0.98?1:0,600)+T(360,384,'D','ink',15,'middle',rm,600);
+    }else{
+      const dx=26*sp;
+      const half=(P,sgn)=>{const a=sh(P,sgn*dx),d=sh(D,sgn*dx),c=sh(C,sgn*dx);
+        return PG([a,d,c],'right','ink',2.5,0.12)+L(a,c,'right',4)+ticks(a,c,1,'right')+rmark(d,a,c)+ticks(a,d,2,'ink')
+          +slabel(a,c,cen(a,d,c),'hypotenuse','right',sp,34,'')};
+      s+=half(A,-1)+half(B,1);
+      s+=T(360,400,'two congruent right triangles','ink',14,'middle',sp,600);
+    }
+    return s;
+  }},
+{ name:'Incongruent sides', fam:'iso', title:'Incongruent sides, incongruent angles', dur:12.5,
+  tags:[['Theorem','Triangle Longer Side'],['Theorem','its converse']],
+  steps:[
+    [0,'Start isosceles. Congruent sides sit opposite congruent angles.'],
+    [2,'Move the vertex off center and the two sides stop matching. The longer side always faces the larger angle.'],
+    [6,'Swing it the other way and both inequalities flip together.'],
+    [10,'This is the Triangle Longer Side Theorem and its converse: incongruent sides mean incongruent opposite angles, in the same order. The next scene applies it to the hypotenuse.']],
+  draw(t){
+    const A=[200,360],B=[520,360];let x=360;
+    if(t>=2)x=lerp(360,470,seg(t,2,5));
+    if(t>=6)x=lerp(470,250,seg(t,6,9));
+    if(t>=10)x=lerp(250,430,seg(t,10,12));
+    const C=[x,140],G=cen(A,B,C),a=dist(B,C),b=dist(A,C),AA=ang(A,B,C),BB=ang(B,A,C);
+    const rel=Math.abs(a-b)<1.2?'=':a>b?'&gt;':'&lt;';
+    let s=PG([A,B,C],'ink','none',0,0.04)+L([360,96],[360,372],'line',1.5,1,'4 6');
+    s+=L(A,B,'ink',2.5)+L(B,C,'c1',4)+L(A,C,'c2',4);
+    s+=arc(A,B,C,30,'c1',1,true)+arc(B,A,C,30,'c2',1,true);
+    s+=alabel(A,B,C,f1(AA)+'°','c1',1,52)+alabel(B,A,C,f1(BB)+'°','c2',1,52);
+    s+=slabel(B,C,G,U(a),'c1')+slabel(A,C,G,U(b),'c2');
+    if(rel==='=')s+=ticks(B,C,1,'c1')+ticks(A,C,1,'c2');
+    s+=vlabel(A,G,'A')+vlabel(B,G,'B')+vlabel(C,G,'C');
+    s+=T(360,44,`<tspan class="g-c1">BC</tspan> ${rel} <tspan class="g-c2">AC</tspan>`,'ink',20,'middle',1,600,'disp');
+    s+=T(360,72,`<tspan class="g-c1">∠A</tspan> ${rel} <tspan class="g-c2">∠B</tspan>`,'ink',20,'middle',1,600,'disp');
+    return s;
+  }},
+{ name:'Hypotenuse', fam:'right', title:'Right triangle: legs and hypotenuse', dur:12.5,
+  tags:[['Definition','legs, hypotenuse'],['Theorem','Triangle Sum'],['Corollary','hypotenuse is longest']],
+  steps:[
+    [0,'A right triangle has one 90° angle. The two sides that form it are the legs.'],
+    [2.5,'The side across from the right angle is the hypotenuse. Only right triangles have one.'],
+    [5,'The Triangle Sum Theorem leaves 90° for the other two angles, so they are complementary. Reshape the triangle and the sum holds.'],
+    [9,'Each acute angle is under 90°, so the right angle is the largest angle. By the Longer Side Theorem, the hypotenuse is always the longest side, and it can never be congruent to a leg.']],
+  draw(t){
+    let y=130;
+    if(t>=5)y=lerp(130,230,seg(t,5,7));
+    if(t>=7)y=lerp(230,80,seg(t,7,9));
+    if(t>=9)y=lerp(80,150,seg(t,9,11.5));
+    const A=[240,350],B=[520,350],C=[240,y],G=cen(A,B,C),M=lp(B,C,.5);
+    const oh=seg(t,2.5,3.3),oa=seg(t,5,5.6),ol=seg(t,9,9.6),BB=ang(B,A,C),CC=ang(C,A,B);
+    let s=PG([A,B,C],'right','none',0,0.07);
+    s+=L(A,B,'ink',3)+L(A,C,'ink',3)+L(B,C,'ink',2.5)+L(B,C,'right',4.5,oh)+rmark(A,B,C,16);
+    if(t>=2.5&&t<5)s+=L(A,lp(A,M,oh),'right',1.5,1,'4 5')+T(M[0]+14,M[1]-12,'opposite the right angle','right',12,'start',oh);
+    if(t<9){s+=slabel(A,B,G,'leg','ink',1,20,'')+slabel(A,C,G,'leg','ink',1,24,'')+slabel(B,C,G,'hypotenuse','right',t<5?oh:1-seg(t,8.6,9),40,'')}
+    s+=slabel(A,B,G,U(dist(A,B)),'ink',ol)+slabel(A,C,G,U(dist(A,C)),'ink',ol,26)+slabel(B,C,G,U(dist(B,C)),'right',ol,26);
+    s+=arc(B,A,C,34,'c1',oa,true)+arc(C,A,B,26,'c2',oa,true);
+    s+=vlabel(A,G,'A')+vlabel(B,G,'B')+vlabel(C,G,'C');
+    s+=T(700,40,`<tspan class="g-c1">∠B</tspan> + <tspan class="g-c2">∠C</tspan> = <tspan class="g-c1">${f1(BB)}°</tspan> + <tspan class="g-c2">${f1(CC)}°</tspan> = 90°`,'ink',15,'end',oa,500,'mono');
+    s+=T(700,66,`<tspan class="g-right">hypotenuse ${U(dist(B,C))}</tspan> &gt; legs ${U(dist(A,B))}, ${U(dist(A,C))}`,'ink',15,'end',ol,500,'mono');
+    return s;
+  }},
+{ name:'Pythagoras', fam:'right', title:'The Pythagorean Theorem', dur:11,
+  tags:[['Theorem','Pythagorean'],['Theorem','its converse']],
+  steps:[
+    [0,'Pack four copies of a right triangle with legs a and b into a square of side a + b. The uncovered region is a tilted square on the hypotenuse, with area c².'],
+    [4,'Slide three of the triangles. Nothing is stretched or removed, so the uncovered area cannot change.'],
+    [8,'The uncovered region is now a square of area a² and a square of area b². So a² + b² = c². The converse also holds: if three sides satisfy that equation, the triangle is right.']],
+  draw(t){
+    const a=110,b=170,S=a+b,ox=150,oy=80,O=P=>[P[0]+ox,P[1]+oy];
+    const tri=[[[0,0],[a,0],[0,b]],[[S,0],[S,a],[a,0]],[[S,S],[b,S],[S,a]],[[0,S],[0,b],[b,S]]];
+    const mv=[[b,a,seg(t,4,6)],[-a,0,seg(t,5,7)],[0,0,0],[0,-b,seg(t,6,8)]];
+    let s=PG([[0,0],[S,0],[S,S],[0,S]].map(O),'right','ink',2.5,0.28);
+    const c2o=1-seg(t,4,4.6),ab=seg(t,8,8.6);
+    s+=T(ox+S/2,oy+S/2+10,'c²','right',30,'middle',c2o,700,'disp');
+    s+=T(ox+b+a/2,oy+a/2+9,'a²','right',26,'middle',ab,700,'disp')+T(ox+b/2,oy+a+b/2+10,'b²','right',30,'middle',ab,700,'disp');
+    [0,1,3,2].forEach(i=>{const m=mv[i];s+=PG(tri[i].map(P=>O([P[0]+m[0]*m[2],P[1]+m[1]*m[2]])),'panel','ink',2.5,1)});
+    s+=T(ox+b+a/2,oy+S+20,'a','ink',15,'middle',1,600,'mono')+T(ox+S+14,oy+a+b/2+5,'b','ink',15,'middle',1,600,'mono')+T(ox+b+a/2+16,oy+a+b/2+22,'c','ink',15,'middle',1,600,'mono');
+    s+=T(470,170,'uncovered area','muted',13,'start',1);
+    s+=T(470,204,'= c²','right',26,'start',1,700,'disp');
+    s+=T(470,240,'= a² + b²','right',26,'start',ab,700,'disp');
+    s+=T(470,300,'a² + b² = c²','ink',24,'start',seg(t,8.8,9.6),700,'disp');
+    return s;
+  }},
+{ name:'Hypotenuse-Leg', fam:'both', title:'HL: where the two triangles meet', dur:12,
+  tags:[['Theorem','Hypotenuse-Leg'],['Theorem','Base Angles'],['Theorem','AAS']],
+  steps:[
+    [0,'Two right triangles with congruent hypotenuses and one pair of congruent legs. Two sides and a non-included angle do not prove congruence in general. Right triangles are the exception.'],
+    [3,'Join them along the congruent legs. The two right angles add to 180°, so A, D, and B fall on one line and the outline is a single triangle.'],
+    [6.5,'Its sides CA and CB are the old hypotenuses, so it is isosceles. The Base Angles Theorem gives ∠A ≅ ∠B.'],
+    [9,'With two angles and a side matched (AAS), the halves are congruent. That is the Hypotenuse-Leg Theorem, and its proof runs through an isosceles triangle.']],
+  draw(t){
+    const p=seg(t,3,5.5),dx=110*p,q=seg(t,6.5,7.3),fin=seg(t,9,9.8),nm=seg(t,5.3,5.9);
+    const A=[110+dx,350],D1=[250+dx,350],C1=[250+dx,120],B=[610-dx,350],D2=[470-dx,350],C2=[470-dx,120];
+    let s='';
+    const half=(P,D,C)=>PG([P,D,C],'right','ink',2.5,0.12)+L(P,C,'right',4)+L(P,C,'iso',4,q)+ticks(P,C,1,q>0.5?'iso':'right')+ticks(D,C,2,'ink')+rmark(D,P,C)
+      +slabel(P,C,cen(P,D,C),'hypotenuse','right',1-seg(t,5.8,6.4),36,'');
+    s+=half(A,D1,C1)+half(B,D2,C2);
+    s+=arc(A,D1,C1,28,'iso',q,true)+arc(B,D2,C2,28,'iso',q,true);
+    s+=T(A[0]-16,A[1]+6,'A','ink',15,'end',nm,600)+T(B[0]+16,B[1]+6,'B','ink',15,'start',nm,600)+T(360,376,'D','ink',15,'middle',nm,600)+T(360,106,'C','ink',15,'middle',nm,600);
+    s+=T(360,44,'CA = CB, so ∠A ≅ ∠B','iso',19,'middle',q*(1-fin),600,'disp');
+    s+=T(360,44,'△ADC ≅ △BDC by HL','ink',19,'middle',fin,600,'disp');
+    return s;
+  }},
+{ name:'45-45-90', fam:'both', title:'Both at once: the 45-45-90 triangle', dur:11.5,
+  tags:[['Theorem','Base Angles'],['Theorem','Triangle Sum'],['Theorem','Pythagorean']],
+  steps:[
+    [0,'A right triangle whose legs are congruent is also isosceles.'],
+    [2.5,'Its acute angles are congruent (Base Angles) and complementary (Triangle Sum), so each is 45°.'],
+    [5,'Turn it to rest on the hypotenuse. The hypotenuse is the base, the one incongruent side. From a² + a² = c², it measures leg × √2.'],
+    [7.8,'Scale the triangle up or down and the ratio of hypotenuse to leg stays at √2, about 1.414.']],
+  draw(t){
+    const A0=[240,340],B0=[480,340],C0=[240,100],G=cen(A0,B0,C0);
+    const r=135*Math.PI/180*seg(t,5,7.5),k=t>7.8?1-0.3*(0.5-0.5*Math.cos(clamp((t-7.8)/3.4)*2*Math.PI)):1;
+    const X=P=>{const x=P[0]-G[0],y=P[1]-G[1];return[G[0]+k*(x*Math.cos(r)-y*Math.sin(r)),G[1]+k*(x*Math.sin(r)+y*Math.cos(r))]};
+    const A=X(A0),B=X(B0),C=X(C0),o45=seg(t,2.5,3.2),ol=seg(t,5,5.6),os=seg(t,7.8,8.3);
+    let s=PG([A,B,C],'iso','none',0,0.07);
+    s+=L(A,B,'iso',3.5)+L(A,C,'iso',3.5)+L(B,C,'right',4.5)+ticks(A,B,1,'iso')+ticks(A,C,1,'iso')+rmark(A,B,C,16);
+    s+=arc(B,A,C,30,'iso',o45,true)+arc(C,A,B,30,'iso',o45,true)+alabel(B,A,C,'45°','iso',o45,50)+alabel(C,A,B,'45°','iso',o45,50);
+    s+=slabel(A,B,G,'leg','iso',1-ol,22,'')+slabel(A,C,G,'leg','iso',1-ol,24,'')+slabel(B,C,G,'hypotenuse','right',1-ol,40,'');
+    s+=slabel(A,B,G,U(dist(A,B)),'iso',ol,24)+slabel(A,C,G,U(dist(A,C)),'iso',ol,24)+slabel(B,C,G,U(dist(B,C)),'right',ol,22);
+    s+=vlabel(A,G,'A')+vlabel(B,G,'B')+vlabel(C,G,'C');
+    s+=T(700,40,'∠B = ∠C = 45°','iso',17,'end',o45,600,'disp');
+    s+=T(700,68,'hypotenuse = leg × √2','right',17,'end',ol,600,'disp');
+    s+=T(700,96,`${U(dist(A,B))} × 1.414 = ${U(dist(B,C))}`,'ink',14,'end',os,500,'mono');
+    return s;
+  }},
+{ name:'Model', fam:'both', title:'The model: drag the vertex', dur:1, interactive:true,
+  tags:[['Model','every triangle on base AB'],['Theorem','Thales']],
+  steps:[
+    [0,'Drag C, or focus the figure and use the arrow keys. A and B stay put.'],
+    [0,'Blue guides mark every position where two sides are congruent: the perpendicular bisector of AB (CA = CB) and two arcs (a side equal to AB).'],
+    [0,'Red guides mark every position with a right angle: the semicircle on AB (right angle at C, by Thales\' theorem) and the verticals through A and B.'],
+    [0,'Where a blue guide crosses a red one, the triangle is both. Anywhere off the blue guides, all three sides are incongruent.']],
+  draw(){
+    const A=[250,340],B=[470,340],C=explore.C,r=220;
+    let s='';
+    s+=L([360,10],[360,340],'iso',1.5,.7,'6 6');
+    s+=`<path d="M470 340 A${r} ${r} 0 0 0 30 340" class="k-iso g-none" stroke-width="1.5" opacity=".7" stroke-dasharray="6 6"/>`;
+    s+=`<path d="M250 340 A${r} ${r} 0 0 1 690 340" class="k-iso g-none" stroke-width="1.5" opacity=".7" stroke-dasharray="6 6"/>`;
+    s+=`<path d="M250 340 A110 110 0 0 1 470 340" class="k-right g-none" stroke-width="1.5" opacity=".8" stroke-dasharray="2 6" stroke-linecap="round"/>`;
+    s+=L([250,10],[250,340],'right',1.5,.8,'2 6')+L([470,10],[470,340],'right',1.5,.8,'2 6');
+    s+=fullTri(A,B,C);
+    s+=`<circle cx="${n2(C[0])}" cy="${n2(C[1])}" r="11" class="g-panel k-ink" stroke-width="2.5"/>`+DOT(C,4,'ink');
+    s+=T(702,424,'blue: two sides congruent','iso',12,'end',1)+T(702,406,'red: one right angle','right',12,'end',1);
+    return s;
+  }}
+];
+function setC(x,y){
+  x=clamp(x,40,680);y=clamp(y,24,318);
+  const snap=7,A=[250,340],B=[470,340],M=[360,340];
+  [250,360,470].forEach(v=>{if(Math.abs(x-v)<snap)x=v});
+  [[M,110],[A,220],[B,220]].forEach(([O,r])=>{const d=Math.hypot(x-O[0],y-O[1]);if(d>0&&Math.abs(d-r)<snap){x=O[0]+(x-O[0])*r/d;y=O[1]+(y-O[1])*r/d}});
+  explore.C=[x,Math.min(y,326)];
+}
+
+/* ---------- player ---------- */
+if(typeof document!=='undefined'){
+  const $=id=>document.getElementById(id);
+  const svg=$('svg'),nav=$('nav'),scrub=$('scrub'),play=$('play'),hint=$('hint');
+  const reduced=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let cur=0,t=0,playing=false,last=null,stepIdx=-2,drag=false;
+
+  scenes.forEach((sc,i)=>{const b=document.createElement('button');b.type='button';b.dataset.fam=sc.fam;
+    b.innerHTML=`<span class="n">${i+1}</span>${sc.name}`;b.addEventListener('click',()=>go(i));nav.appendChild(b)});
+
+  function render(){
+    const sc=scenes[cur];svg.innerHTML=sc.draw(t);
+    if(!sc.interactive)scrub.value=Math.round(t/sc.dur*1000);
+    let idx=-1;sc.steps.forEach((s,i)=>{if(t>=s[0])idx=i});if(sc.interactive)idx=99;
+    if(idx!==stepIdx){stepIdx=idx;[...$('steps').children].forEach((li,i)=>{li.classList.toggle('on',i<=idx);li.classList.toggle('now',i===idx)})}
+  }
+  function label(){const sc=scenes[cur];play.textContent=playing?'Pause':(t>=sc.dur?'Replay':'Play')}
+  function go(i){
+    cur=clamp(i,0,scenes.length-1);const sc=scenes[cur];
+    t=reduced&&!sc.interactive?sc.dur:0;playing=!reduced&&!sc.interactive;last=null;stepIdx=-2;
+    $('title').textContent=sc.title;
+    $('tags').innerHTML=sc.tags.map(g=>`<span class="tag"><b>${g[0]}</b> ${g[1]}</span>`).join('');
+    $('steps').innerHTML=sc.steps.map(s=>`<li>${s[1]}</li>`).join('');
+    [...nav.children].forEach((b,j)=>b.setAttribute('aria-current',j===cur?'true':'false'));
+    $('prev').disabled=cur===0;$('next').disabled=cur===scenes.length-1;
+    scrub.hidden=play.hidden=!!sc.interactive;hint.hidden=!sc.interactive;
+    svg.classList.toggle('drag',!!sc.interactive);
+    if(sc.interactive)svg.setAttribute('tabindex','0');else svg.removeAttribute('tabindex');
+    svg.setAttribute('aria-label',sc.title);
+    label();render();
+  }
+  function frame(now){
+    const sc=scenes[cur];
+    if(playing&&!sc.interactive){
+      if(last!=null)t=Math.min(sc.dur,t+(now-last)/1000);
+      last=now;if(t>=sc.dur){playing=false;label()}
+      render();
+    }else last=null;
+    requestAnimationFrame(frame);
+  }
+  play.addEventListener('click',()=>{const sc=scenes[cur];if(!playing&&t>=sc.dur)t=0;playing=!playing;last=null;label();render()});
+  scrub.addEventListener('input',()=>{playing=false;t=scrub.value/1000*scenes[cur].dur;label();render()});
+  $('prev').addEventListener('click',()=>go(cur-1));
+  $('next').addEventListener('click',()=>go(cur+1));
+
+  const toSvg=e=>{const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse())};
+  svg.addEventListener('pointerdown',e=>{if(!scenes[cur].interactive)return;drag=true;try{svg.setPointerCapture(e.pointerId)}catch(_){}const q=toSvg(e);setC(q.x,q.y);render()});
+  svg.addEventListener('pointermove',e=>{if(!drag)return;const q=toSvg(e);setC(q.x,q.y);render()});
+  ['pointerup','pointercancel'].forEach(n=>svg.addEventListener(n,()=>{drag=false}));
+  svg.addEventListener('keydown',e=>{
+    if(!scenes[cur].interactive)return;
+    const d={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];if(!d)return;
+    e.preventDefault();const st=e.shiftKey?12:3;explore.C=[clamp(explore.C[0]+d[0]*st,40,680),clamp(explore.C[1]+d[1]*st,24,326)];render();
+  });
+
+  go(0);requestAnimationFrame(frame);
+}
+if(typeof module!=='undefined')module.exports={scenes,setC,explore};
+</script>
+</body>
+</html>
